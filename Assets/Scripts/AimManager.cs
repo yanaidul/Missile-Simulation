@@ -15,6 +15,7 @@ namespace MissileSimulation.Missile
         [SerializeField] private Timer _timerScript;
 
         [Header("Crosshair Components")]
+        [SerializeField] private GameObject _bcuCrosshairs;
         [SerializeField] private Image _crossHair;
         [SerializeField] private Image _followCrossHair;
         [SerializeField] private Image _frontPlaneCrossHair;
@@ -33,12 +34,14 @@ namespace MissileSimulation.Missile
         [SerializeField] private float _smoothTime = 0.3f;
         [SerializeField] private bool _isLockedOnFront = false;
         [SerializeField] private bool _isLocked = false;
+        [SerializeField] private bool _isBcuActivated = false;
         [SerializeField] private bool _isTargetingPlane = false;
         [SerializeField] private bool _isMissileLaunched = false;
 
         [Header("Input Action Asset")]
         [SerializeField] private InputActionReference _lockAction;
         [SerializeField] private InputActionReference _shootAction;
+        [SerializeField] private InputActionReference _activateBcuAction;
 
         private float _timer = 0f;
         private float _timeLimit = 2f;
@@ -69,8 +72,10 @@ namespace MissileSimulation.Missile
 
         void Start()
         {
+            _isBcuActivated = false;
             _isMissileLaunched = false;
             _frontPlaneCollider.enabled = false;
+            _bcuCrosshairs.gameObject.SetActive(false);
             _timerScript.gameObject.SetActive(false);
             _followCrossHair.gameObject.SetActive(false);
             _frontPlaneCrossHair.gameObject.SetActive(false);
@@ -97,7 +102,14 @@ namespace MissileSimulation.Missile
 
             if (_isLocked)
             {
+                _bcuCrosshairs.gameObject.SetActive(false);
                 TargetLockedOnHandler();
+            }
+
+            if (_activateBcuAction.action.WasPressedThisFrame() && !_isBcuActivated)
+            {
+                _isBcuActivated = true;
+                _bcuCrosshairs.gameObject.SetActive(true);
             }
 
             RaycastCheck(ray, out hit);
@@ -163,13 +175,14 @@ namespace MissileSimulation.Missile
                 // Check if the hit object has the "Plane" tag
                 if (hit.collider.CompareTag("Plane"))
                 {
-                    if (_lockAction.action.WasPressedThisFrame() && !_isLocked)
+                    if (_lockAction.action.IsPressed() && !_isLocked && _isBcuActivated)
                     {
                         _isTargetingPlane = true;
                         _frontPlaneCollider.enabled = true;
                         _crossHair.sprite = _targetedCrosshair;
                         _target = hit.collider.gameObject.transform;
                     }
+                    else if (_lockAction.action.WasReleasedThisFrame() && !_isLocked) RestoreCrosshairToInitialState();
                 }
 
                 if (hit.collider.CompareTag("FrontPlane") && _isLocked && !_isMissileLaunched)
@@ -198,6 +211,7 @@ namespace MissileSimulation.Missile
         {
             _timerScript.OnStopTimer();
             _timer = 0;
+            _isBcuActivated = false;
             _frontPlaneCollider.enabled = false;
             _isLocked = false;
             _isTargetingPlane = false;
@@ -205,6 +219,7 @@ namespace MissileSimulation.Missile
             _crossHair.sprite = _normalCrosshair;
             _followCrossHair.gameObject.SetActive(false);
             _frontPlaneCrossHair.gameObject.SetActive(false);
+            _bcuCrosshairs.gameObject.SetActive(false);
         }
     } 
 }

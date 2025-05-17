@@ -130,6 +130,15 @@
                     "processors": "",
                     "interactions": "Hold(duration=0.4)",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Activate BCU",
+                    "type": "Button",
+                    "id": "ed69bf09-409d-471f-8a1e-3d1a940bb334",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -313,7 +322,7 @@
                     "name": "",
                     "id": "05f6913d-c316-48b2-a6bb-e225f14c7960",
                     "path": "<Mouse>/leftButton",
-                    "interactions": "",
+                    "interactions": "Hold(duration=0.1)",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Lock",
@@ -669,6 +678,28 @@
                     "processors": "",
                     "groups": ";Gamepad",
                     "action": "Zoom Out",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9e603962-2fad-455e-846c-b774db56ce34",
+                    "path": "<Gamepad>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Gamepad",
+                    "action": "Activate BCU",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5164cb44-8166-4668-87bd-021d67fb7820",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Activate BCU",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

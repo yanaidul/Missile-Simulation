@@ -17,10 +17,10 @@ namespace MissileSimulation
         [SerializeField] private GameObject _camera;
         [SerializeField] private GameObject _replayCamera;
 
-        [Header("Sensitivity & Clamp")]
+        [Header("Sensitivity & Rotation")]
         [SerializeField] private float _sensitivity = 2f;
-        [SerializeField] private float _clampX = 80f;
-        [SerializeField] private float _clampY = 80f;
+        [SerializeField] private float _verticalClamp = 80f; // Clamp only vertical rotation
+        [SerializeField] private bool _invertY = false;
 
         [Header("Input Action Asset")]
         [SerializeField] private InputActionReference lookAction;
@@ -29,10 +29,12 @@ namespace MissileSimulation
 
         private float _xRotation = 0f;
         private float _yRotation = 0f;
+        private Quaternion _initialCameraRotation;
 
         void OnEnable()
         {
             lookAction.action.Enable();
+            _initialCameraRotation = _camera.transform.localRotation;
         }
 
         void OnDisable()
@@ -44,70 +46,63 @@ namespace MissileSimulation
         {
             if (PlayerPrefs.HasKey("Filter"))
             {
-                if (PlayerPrefs.GetInt("Filter") == 0) _isBlackWhite = false;
-                else _isBlackWhite = true;
+                _isBlackWhite = PlayerPrefs.GetInt("Filter") == 1;
             }
 
-            if (_isBlackWhite)
-            {
-                _volume.profile = _blackWhiteVolumeProfile; 
-            }
-            else
-            {
-                _volume.profile = _normalVolumeProfile;
-            }
+            _volume.profile = _isBlackWhite ? _blackWhiteVolumeProfile : _normalVolumeProfile;
         }
 
         void Update()
         {
-            if (_camera == null) return;
-            if (!GameManager.GetInstance().IsGameActive) return;
+            if (_camera == null || !GameManager.GetInstance().IsGameActive) return;
 
-            if (zoomInAction.action.IsPressed())
+            HandleZoomInput();
+            HandleCameraRotation();
+        }
+
+        private void HandleZoomInput()
+        {
+            if (zoomInAction.action.WasPressedThisFrame())
             {
-                if(_camera.TryGetComponent(out Camera camera))
-                {
-                    camera.fieldOfView -= (_sensitivity * Time.deltaTime);
-                    camera.fieldOfView = Mathf.Clamp(camera.fieldOfView, 30, 60);
-                }
+                SetFieldOfView(30);
+            }
+            else if (zoomOutAction.action.WasPressedThisFrame())
+            {
+                SetFieldOfView(60);
+            }
+        }
 
-                if (_replayCamera.TryGetComponent(out Camera replayCamera))
-                {
-                    replayCamera.fieldOfView -= (_sensitivity * Time.deltaTime);
-                    replayCamera.fieldOfView = Mathf.Clamp(camera.fieldOfView, 30, 60);
-                }
+        private void SetFieldOfView(float fov)
+        {
+            if (_camera.TryGetComponent(out Camera camera))
+            {
+                camera.fieldOfView = fov;
             }
 
-            if (zoomOutAction.action.IsPressed())
+            if (_replayCamera.TryGetComponent(out Camera replayCamera))
             {
-                if (_camera.TryGetComponent(out Camera camera))
-                {
-                    camera.fieldOfView += (_sensitivity * Time.deltaTime);
-                    camera.fieldOfView = Mathf.Clamp(camera.fieldOfView, 30, 60);
-                }
-
-                if (_replayCamera.TryGetComponent(out Camera replayCamera))
-                {
-                    replayCamera.fieldOfView += (_sensitivity * Time.deltaTime);
-                    replayCamera.fieldOfView = Mathf.Clamp(camera.fieldOfView, 30, 60);
-                }
-
+                replayCamera.fieldOfView = fov;
             }
+        }
 
-
+        private void HandleCameraRotation()
+        {
             Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
 
             float mouseX = lookInput.x * _sensitivity * Time.deltaTime;
-            float mouseY = lookInput.y * _sensitivity * Time.deltaTime;
+            float mouseY = lookInput.y * _sensitivity * Time.deltaTime * (_invertY ? 1 : -1);
 
-            _xRotation -= mouseY;
-            _xRotation = Mathf.Clamp(_xRotation, -_clampX, _clampX);
-
+            // Unclamped horizontal rotation (full 360 degrees)
             _yRotation += mouseX;
-            _yRotation = Mathf.Clamp(_yRotation, -_clampY, _clampY);
 
-            _camera.transform.localRotation = Quaternion.Euler(_xRotation, _yRotation, 0f);
-            _replayCamera.transform.localRotation = Quaternion.Euler(_xRotation, _yRotation, 0f);
+            // Clamped vertical rotation
+            _xRotation += mouseY;
+            _xRotation = Mathf.Clamp(_xRotation, -_verticalClamp, _verticalClamp);
+
+            // Apply rotation to cameras
+            Quaternion targetRotation = Quaternion.Euler(_xRotation, _yRotation, 0f);
+            _camera.transform.localRotation = _initialCameraRotation * targetRotation;
+            _replayCamera.transform.localRotation = _initialCameraRotation * targetRotation;
         }
-    } 
+    }
 }
